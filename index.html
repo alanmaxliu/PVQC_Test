@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PVQC 電機電子專業英文測驗挑戰系統 (793題庫)</title>
+  <meta name="description" content="PVQC 電機電子類 793 專業英文單字互動測驗遊戲，提供打散代號配對、經典單選、卡片消消樂與拼寫挑戰等多元測驗模式。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- 頂部導覽列 -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">⚡</div>
+        <div class="logo-title">
+          <h1>PVQC 電機電子專業英文測驗系統</h1>
+          <div class="sub-title">Expert Vocabulary Assessment & Training System</div>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge-tag highlight" id="badgeTotalWords">題庫總數：793 題</span>
+        <span class="badge-tag" id="badgeCurrentMode">模式：打散代號配對</span>
+      </div>
+    </header>
+
+    <!-- 主設定面板 (初始顯示) -->
+    <section class="glass-panel" id="panelConfig">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">⚙️ 測驗出題參數設定</h2>
+          <p class="panel-desc">請選擇要抽考的單字序號範圍與出題數，系統將智慧抽題或全範圍測驗。</p>
+        </div>
+      </div>
+
+      <div class="config-grid">
+        <!-- 題庫範圍選取 -->
+        <div class="config-item">
+          <label for="inputStartId">
+            <span>單字序號範圍 (1 ~ 793)</span>
+            <span id="rangeCountHint" style="color: var(--accent-cyan); font-weight: 600;">共 793 題</span>
+          </label>
+          <div class="range-inputs">
+            <input type="number" id="inputStartId" class="tech-input" min="1" max="793" value="1" placeholder="起始">
+            <span style="color: var(--text-dim); font-weight: bold;">至</span>
+            <input type="number" id="inputEndId" class="tech-input" min="1" max="793" value="793" placeholder="結束">
+          </div>
+          <!-- 快捷範圍標籤 -->
+          <div class="quick-chips" id="rangeChips">
+            <button type="button" class="chip-btn" data-start="1" data-end="100">1 ~ 100</button>
+            <button type="button" class="chip-btn" data-start="101" data-end="200">101 ~ 200</button>
+            <button type="button" class="chip-btn" data-start="201" data-end="300">201 ~ 300</button>
+            <button type="button" class="chip-btn" data-start="301" data-end="400">301 ~ 400</button>
+            <button type="button" class="chip-btn" data-start="401" data-end="500">401 ~ 500</button>
+            <button type="button" class="chip-btn" data-start="501" data-end="600">501 ~ 600</button>
+            <button type="button" class="chip-btn" data-start="601" data-end="700">601 ~ 700</button>
+            <button type="button" class="chip-btn" data-start="701" data-end="793">701 ~ 793</button>
+            <button type="button" class="chip-btn active" data-start="1" data-end="793">全部 1 ~ 793</button>
+          </div>
+        </div>
+
+        <!-- 欲考題數設定 -->
+        <div class="config-item">
+          <label for="inputQuestionCount">
+            <span>欲考題數</span>
+            <span id="ruleHint" style="color: var(--text-muted); font-size: 0.78rem;">≧範圍題數即全考</span>
+          </label>
+          <input type="number" id="inputQuestionCount" class="tech-input" min="1" max="793" value="20" placeholder="出題數">
+          <!-- 快捷題數標籤 -->
+          <div class="quick-chips" id="countChips">
+            <button type="button" class="chip-btn" data-count="10">10 題</button>
+            <button type="button" class="chip-btn active" data-count="20">20 題</button>
+            <button type="button" class="chip-btn" data-count="50">50 題</button>
+            <button type="button" class="chip-btn" data-count="100">100 題</button>
+            <button type="button" class="chip-btn" data-count="all">全考範圍</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模式選擇 -->
+      <div class="mode-selection-title">🎯 選擇測驗 / 遊戲模式</div>
+      <div class="mode-grid">
+        
+        <!-- 模式 1：打散代號配對 (指定核心) -->
+        <div class="mode-card selected" data-mode="match-code">
+          <div class="mode-badge-rec">核心指定模式</div>
+          <div class="mode-icon">🔀</div>
+          <div class="mode-info">
+            <h4>打散代號配對</h4>
+            <p>英文題號與中文解釋各自獨立打散編碼，考生填入對應中文代號進行校對！支援單頁或分組配對。</p>
+          </div>
+        </div>
+
+        <!-- 模式 2：經典四選一 -->
+        <div class="mode-card" data-mode="multiple-choice">
+          <div class="mode-icon">📝</div>
+          <div class="mode-info">
+            <h4>PVQC 經典單選</h4>
+            <p>標準 PVQC 競賽模式，給予英文詞彙並自 4 個中文選項中選出正解，考驗快速反應力。</p>
+          </div>
+        </div>
+
+        <!-- 模式 3：卡片消消樂 -->
+        <div class="mode-card" data-mode="card-match">
+          <div class="mode-icon">🧩</div>
+          <div class="mode-info">
+            <h4>卡片速配消消樂</h4>
+            <p>將抽出的英文與中文打散混排於卡片網格，連續點擊對應配對進行消除，計時挑戰！</p>
+          </div>
+        </div>
+
+        <!-- 模式 4：單字拼寫挑戰 -->
+        <div class="mode-card" data-mode="spell-check">
+          <div class="mode-icon">⌨️</div>
+          <div class="mode-info">
+            <h4>拼寫實戰挑戰</h4>
+            <p>看中文解釋拼寫出正確英文單字，提供長度與字首提示，加深專業詞彙記憶度。</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 抽題規則提示摘要 -->
+      <div class="config-summary-bar">
+        <div class="summary-info">
+          <div class="summary-item">已選範圍：<b id="summaryRange">1 ~ 793</b></div>
+          <div class="summary-item">涵蓋總題數：<b id="summaryTotal">793 題</b></div>
+          <div class="summary-item">預計出題：<b id="summaryPick">20 題</b></div>
+          <div class="summary-item">抽題機制：<b id="summaryMechanism" style="color: var(--accent-success);">隨機抽考</b></div>
+        </div>
+      </div>
+
+      <button type="button" class="btn-primary-glow" id="btnStartQuiz">
+        <span>🚀 開始測驗 / 進入挑戰</span>
+      </button>
+    </section>
+
+    <!-- 測驗進行區 (動態呈現) -->
+    <section class="glass-panel" id="panelQuiz" style="display: none;">
+      
+      <div class="quiz-active-header">
+        <div class="progress-info">
+          <span id="quizModeIndicator" style="font-weight: 600; color: var(--accent-cyan);">打散代號配對</span>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+          </div>
+          <span id="progressText" style="color: var(--text-muted); font-size: 0.88rem;">1 / 20</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="timer-tag">
+            <span>⏱️</span>
+            <span id="quizTimer">00:00</span>
+          </div>
+          <button type="button" class="btn-secondary" id="btnQuitQuiz">結束並返回</button>
+        </div>
+      </div>
+
+      <!-- 各模式動態內容容器 -->
+      <div id="quizContentArea">
+        <!-- 由 JavaScript 動態填入 -->
+      </div>
+
+    </section>
+
+    <!-- 測驗結果與分析面板 -->
+    <section class="glass-panel" id="panelResult" style="display: none;">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">📊 測驗結算與分析報告</h2>
+          <p class="panel-desc">查看本回測驗整體成效與錯題深度解析</p>
+        </div>
+      </div>
+
+      <div class="result-panel">
+        
+        <!-- 分數環 -->
+        <div class="score-circle-wrap">
+          <svg class="score-circle-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00f2fe" />
+                <stop offset="100%" stop-color="#4facfe" />
+              </linearGradient>
+            </defs>
+            <circle class="score-circle-bg" cx="50" cy="50" r="42" />
+            <circle class="score-circle-fill" id="resultCircleFill" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="264" />
+          </svg>
+          <div class="score-center-text">
+            <span class="score-num" id="resultScore">0</span>
+            <span class="score-total">分 / 100</span>
+          </div>
+        </div>
+
+        <!-- 數據統計卡片 -->
+        <div class="result-metrics">
+          <div class="metric-card">
+            <div class="val" id="metricTotalQ">0</div>
+            <div class="lbl">測驗總題數</div>
+          </div>
+          <div class="metric-card">
+            <div class="val" id="metricCorrect" style="color: var(--accent-success);">0</div>
+            <div class="lbl">答對題數</div>
+          </div>
+          <div class="metric-card">
+            <div class="val" id="metricWrong" style="color: var(--accent-error);">0</div>
+            <div class="lbl">答錯題數</div>
+          </div>
+          <div class="metric-card">
+            <div class="val" id="metricTime">00:00</div>
+            <div class="lbl">作答總耗時</div>
+          </div>
+          <div class="metric-card">
+            <div class="val" id="metricRate">0%</div>
+            <div class="lbl">正確率</div>
+          </div>
+        </div>
+
+        <!-- 錯題清單 -->
+        <div class="mistakes-section" id="mistakesContainer">
+          <div class="mistakes-title">
+            <span>❌ 錯題解析與複習清單 (<span id="mistakeCount">0</span>)</span>
+            <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: normal;">點擊 🔊 可朗讀發音</span>
+          </div>
+          <div class="mistake-list" id="mistakesList">
+            <!-- 動態插入錯題 -->
+          </div>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div class="result-actions">
+          <button type="button" class="btn-primary-glow" id="btnRetryWrong" style="width: auto; min-width: 180px;">
+            <span>🔄 僅重測此回錯題</span>
+          </button>
+          <button type="button" class="btn-secondary" id="btnRestartQuiz" style="font-size: 1rem; padding: 14px 24px;">
+            <span>🎲 換新題目再次挑戰</span>
+          </button>
+          <button type="button" class="btn-secondary" id="btnBackToHome" style="font-size: 1rem; padding: 14px 24px;">
+            <span>🏠 返回設定首頁</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <p>PVQC 專業英文詞彙 - 電機電子類 (EE) 1-793 線上互動測驗系統</p>
+      <p style="margin-top: 4px; color: var(--text-dim);">支援離線與 GitHub Pages 靜態託管 ｜ 純前端極致效能</p>
+    </footer>
+
+  </div>
+
+  <!-- 載入題庫與主程式模組 -->
+  <script src="data/words.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

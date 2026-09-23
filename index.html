@@ -2,15 +2,18 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PVQC 電機電子專業英文測驗挑戰系統 (793題庫)</title>
-  <meta name="description" content="PVQC 電機電子類 793 專業英文單字互動測驗遊戲，提供打散代號配對、經典單選、卡片消消樂與拼寫挑戰等多元測驗模式。">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PVQC 電機電子專業英文測驗挑戰系統 (793題庫) - 劉建良@2026 免費軟體</title>
+  <meta name="description" content="PVQC 電機電子類 793 專業英文單字互動測驗遊戲，提供打散代號配對、經典單選、卡片消消樂與拼寫挑戰等多元測驗模式。劉建良@2026 免費軟體。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+  <!-- 通關煙火與紙花特效畫布 -->
+  <canvas id="confettiCanvas"></canvas>
 
   <div class="app-container">
     
@@ -24,8 +27,14 @@
         </div>
       </div>
       <div class="header-badges">
-        <span class="badge-tag highlight" id="badgeTotalWords">題庫總數：793 題</span>
-        <span class="badge-tag" id="badgeCurrentMode">模式：打散代號配對</span>
+        <!-- 作者與免費軟體標記 -->
+        <span class="badge-tag author-badge">👤 劉建良@2026 免費軟體</span>
+        <span class="badge-tag highlight" id="badgeTotalWords">題庫：793 題</span>
+        <!-- 特效與音效開關 -->
+        <button type="button" class="effect-toggle-btn active" id="btnToggleEffects" title="切換按鈕特效與音效">
+          <span id="effectIcon">✨</span>
+          <span id="effectLabel">特效與音效: 開</span>
+        </button>
       </div>
     </header>
 
@@ -91,8 +100,8 @@
           <div class="mode-badge-rec">核心指定模式</div>
           <div class="mode-icon">🔀</div>
           <div class="mode-info">
-            <h4>打散代號配對</h4>
-            <p>英文題號與中文解釋各自獨立打散編碼，考生填入對應中文代號進行校對！支援單頁或分組配對。</p>
+            <h4>打散代號配對 (防呆防重複)</h4>
+            <p>英文與中文打散編號，輸入或點選代號配對，內建重複代號防呆保護，手機操作最順手！</p>
           </div>
         </div>
 
@@ -135,7 +144,7 @@
         </div>
       </div>
 
-      <button type="button" class="btn-primary-glow" id="btnStartQuiz">
+      <button type="button" class="btn-primary-glow btn-fx" id="btnStartQuiz">
         <span>🚀 開始測驗 / 進入挑戰</span>
       </button>
     </section>
@@ -152,12 +161,12 @@
           <span id="progressText" style="color: var(--text-muted); font-size: 0.88rem;">1 / 20</span>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="quiz-header-right">
           <div class="timer-tag">
             <span>⏱️</span>
             <span id="quizTimer">00:00</span>
           </div>
-          <button type="button" class="btn-secondary" id="btnQuitQuiz">結束並返回</button>
+          <button type="button" class="btn-secondary btn-fx" id="btnQuitQuiz">返回首頁</button>
         </div>
       </div>
 
@@ -179,13 +188,23 @@
 
       <div class="result-panel">
         
+        <!-- 通過 / 不及格動態評語徽章 -->
+        <div class="grade-banner" id="gradeBanner">
+          <div class="grade-badge" id="gradeBadge">合格 PASS</div>
+          <div class="grade-subtext" id="gradeSubtext">恭喜通過測驗！專業詞彙熟練度優異！</div>
+        </div>
+
         <!-- 分數環 -->
         <div class="score-circle-wrap">
           <svg class="score-circle-svg" viewBox="0 0 100 100">
             <defs>
-              <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#00f2fe" />
-                <stop offset="100%" stop-color="#4facfe" />
+              <linearGradient id="scoreGradPass" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#00f2fe" />
+              </linearGradient>
+              <linearGradient id="scoreGradFail" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ef4444" />
+                <stop offset="100%" stop-color="#f59e0b" />
               </linearGradient>
             </defs>
             <circle class="score-circle-bg" cx="50" cy="50" r="42" />
@@ -234,13 +253,13 @@
 
         <!-- 操作按鈕 -->
         <div class="result-actions">
-          <button type="button" class="btn-primary-glow" id="btnRetryWrong" style="width: auto; min-width: 180px;">
+          <button type="button" class="btn-primary-glow btn-fx" id="btnRetryWrong" style="width: auto; min-width: 180px;">
             <span>🔄 僅重測此回錯題</span>
           </button>
-          <button type="button" class="btn-secondary" id="btnRestartQuiz" style="font-size: 1rem; padding: 14px 24px;">
+          <button type="button" class="btn-secondary btn-fx" id="btnRestartQuiz" style="font-size: 1rem; padding: 14px 24px;">
             <span>🎲 換新題目再次挑戰</span>
           </button>
-          <button type="button" class="btn-secondary" id="btnBackToHome" style="font-size: 1rem; padding: 14px 24px;">
+          <button type="button" class="btn-secondary btn-fx" id="btnBackToHome" style="font-size: 1rem; padding: 14px 24px;">
             <span>🏠 返回設定首頁</span>
           </button>
         </div>
@@ -248,9 +267,13 @@
       </div>
     </section>
 
+    <!-- 頁尾宣告與作者著作權標記 -->
     <footer class="app-footer">
-      <p>PVQC 專業英文詞彙 - 電機電子類 (EE) 1-793 線上互動測驗系統</p>
-      <p style="margin-top: 4px; color: var(--text-dim);">支援離線與 GitHub Pages 靜態託管 ｜ 純前端極致效能</p>
+      <div class="author-credits">
+        <strong>系統開發設計：劉建良@2026 免費軟體</strong>
+      </div>
+      <p style="margin-top: 6px;">PVQC 專業英文詞彙 - 電機電子類 (EE) 1-793 線上互動測驗系統</p>
+      <p style="margin-top: 4px; color: var(--text-dim);">純前端離線運行支援 ｜ 隨時發布至 GitHub Pages ｜ 保留一切學習分享權利</p>
     </footer>
 
   </div>

@@ -297,14 +297,97 @@
     return label;
   }
 
-  function speak(text) {
+  // ================= 手機端雙軌語音發音引擎 (Web Speech API + 真人 Fallback) =================
+  let availableVoices = [];
+  let speechUnlocked = false;
+
+  function loadVoices() {
     if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
+    availableVoices = window.speechSynthesis.getVoices();
   }
+
+  if ('speechSynthesis' in window) {
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  // 手機手勢解鎖音訊權限 (使用者第一次點擊任何按鈕時自動觸發)
+  function unlockMobileAudio() {
+    if (speechUnlocked) return;
+    speechUnlocked = true;
+    try {
+      getAudioContext();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.resume();
+        const silentUtterance = new SpeechSynthesisUtterance(' ');
+        silentUtterance.volume = 0.01;
+        window.speechSynthesis.speak(silentUtterance);
+      }
+    } catch (e) {}
+  }
+
+  // 核心發音函式
+  function speak(text) {
+    if (!text) return;
+    unlockMobileAudio();
+
+    const cleanText = text.trim();
+
+    // 方案 A：嘗試瀏覽器原生 Web Speech API (支援離線)
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.resume();
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.88;
+        utterance.volume = 1.0;
+
+        // 搜尋最佳美式英文發音 Voice
+        if (availableVoices.length === 0) {
+          availableVoices = window.speechSynthesis.getVoices();
+        }
+
+        const enVoice = availableVoices.find(v => v.lang === 'en-US' || v.lang === 'en_US') ||
+                        availableVoices.find(v => v.lang.startsWith('en'));
+        if (enVoice) {
+          utterance.voice = enVoice;
+        }
+
+        let hasSpoken = false;
+        utterance.onstart = () => { hasSpoken = true; };
+
+        // iOS Safari 避開 cancel 立即清空佇列問題：微延遲 40ms
+        setTimeout(() => {
+          window.speechSynthesis.speak(utterance);
+        }, 40);
+
+        // 防護檢查：若手機無英文語音包 (如部分 Android 機型)，1.2 秒後無聲音則 Fallback
+        setTimeout(() => {
+          if (!hasSpoken) {
+            playAudioFallback(cleanText);
+          }
+        }, 1200);
+
+        return;
+      } catch (e) {
+        // 出現例外時降級至 Fallback
+      }
+    }
+
+    // 方案 B：網路真人口音 Fallback (100% 適用所有手機)
+    playAudioFallback(cleanText);
+  }
+
+  // 真人發音 Fallback (使用公共音訊串流)
+  function playAudioFallback(text) {
+    try {
+      const audioUrl = `https://dict.youdao.com/dictvoice?type=2&audio=${encodeURIComponent(text)}`;
+      const fallbackAudio = new Audio(audioUrl);
+      fallbackAudio.play().catch(() => {});
+    } catch (e) {}
+  }
+
 
   // ================= 抽題核心邏輯 =================
   function pickQuestions() {
@@ -1178,11 +1261,15 @@
       DOM.panelResult.style.display = 'none';
       DOM.panelConfig.style.display = 'block';
     });
+    // 手機觸控全域手勢解鎖音訊 (iOS / Android 規範)
+    window.addEventListener('touchstart', unlockMobileAudio, { once: true });
+    window.addEventListener('click', unlockMobileAudio, { once: true });
   }
 
   // 初始化執行
   updateConfigSummary();
   updateEffectsUI();
   initEventListeners();
+
 
 })();

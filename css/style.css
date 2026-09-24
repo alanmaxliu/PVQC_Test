@@ -573,43 +573,151 @@ body.fx-enabled .btn-fx:active {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* ================= 模式一：打散代號配對樣式 (連續長捲動 + 防呆防重複) ================= */
+/* ================= 模式一：打散代號配對樣式 (左右雙欄獨立捲動 + 繁體筆劃排序 + 即時搜尋) ================= */
 .matching-layout {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  height: calc(100vh - 180px);
+  min-height: 520px;
   margin-top: 10px;
   position: relative;
+}
+
+/* 視圖切換模式 */
+.matching-layout.view-en-only {
+  grid-template-columns: 1fr;
+}
+.matching-layout.view-en-only .matching-col.col-zh {
+  display: none !important;
+}
+
+.matching-layout.view-zh-only {
+  grid-template-columns: 1fr;
+}
+.matching-layout.view-zh-only .matching-col.col-en {
+  display: none !important;
 }
 
 .matching-col {
   background: var(--bg-glass);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-/* 桌機右側中文對照表固定吸附 (Sticky) */
-.matching-col.sticky-col {
-  position: sticky;
-  top: 16px;
-  max-height: calc(100vh - 32px);
   overflow: hidden;
-  box-shadow: var(--shadow-md);
-  background: rgba(17, 24, 39, 0.92);
-  backdrop-filter: blur(20px);
-  z-index: 10;
+  height: 100%;
 }
 
-.matching-col.sticky-col .zh-reference-list {
-  max-height: calc(100vh - 120px);
+.en-match-list,
+.zh-reference-list {
+  flex: 1;
   overflow-y: auto;
-  padding-right: 6px;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
+
+/* 中文查找工具列 (搜尋 + 筆劃排序 + 隱藏已配對) */
+.zh-search-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.zh-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.zh-search-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  padding: 7px 28px 7px 10px;
+  font-size: 0.85rem;
+}
+
+.zh-search-input:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+}
+
+.zh-search-clear {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.zh-tools-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-tool-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-tool-pill:hover,
+.btn-tool-pill.active {
+  background: rgba(0, 242, 254, 0.15);
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+/* 手機版頂重視圖切換 Tabs */
+.view-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.view-tab-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 7px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-tab-btn.active {
+  background: var(--gradient-tech);
+  color: #070b14;
+  border-color: transparent;
+}
+
 
 .matching-status-bar {
   display: flex;
@@ -1340,8 +1448,13 @@ body.fx-enabled .btn-fx:active {
 /* ================= 手機螢幕極致體驗響應式優化 ================= */
 @media (max-width: 860px) {
   .matching-layout {
-    grid-template-columns: 1fr;
-    gap: 16px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    height: calc(100vh - 190px);
+    min-height: 480px;
+  }
+  .matching-col {
+    padding: 8px 6px;
   }
   .mc-options-grid {
     grid-template-columns: 1fr;
@@ -1359,40 +1472,56 @@ body.fx-enabled .btn-fx:active {
 
 @media (max-width: 480px) {
   .app-container {
-    padding: 12px 10px 40px;
-    gap: 16px;
+    padding: 10px 8px 30px;
+    gap: 12px;
   }
   .glass-panel {
-    padding: 16px 12px;
+    padding: 14px 10px;
     border-radius: var(--radius-md);
   }
   .logo-title h1 {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+  }
+  .matching-layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    height: calc(100vh - 210px);
+  }
+  .en-match-item {
+    padding: 8px 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .en-match-input-wrap {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .en-term {
+    font-size: 0.88rem;
+  }
+  .match-code-input {
+    width: 44px;
+    height: 34px;
+    font-size: 0.95rem;
+  }
+  .zh-reference-card {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .zh-code-badge {
+    min-width: 24px;
+    height: 24px;
+    font-size: 0.78rem;
+  }
+  .zh-meaning-text {
+    font-size: 0.8rem;
   }
   .config-grid {
     grid-template-columns: 1fr;
   }
   .mode-grid {
     grid-template-columns: 1fr;
-  }
-  .en-term {
-    font-size: 0.92rem;
-  }
-  .match-code-input {
-    width: 46px;
-    height: 38px;
-    font-size: 1rem;
-  }
-  .zh-reference-card {
-    padding: 8px 10px;
-  }
-  .zh-code-badge {
-    min-width: 28px;
-    height: 28px;
-    font-size: 0.85rem;
-  }
-  .zh-meaning-text {
-    font-size: 0.85rem;
   }
   .result-metrics {
     gap: 8px;

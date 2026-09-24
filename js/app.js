@@ -553,13 +553,13 @@
     }
   }
 
-  // ================= 模式一：打散代號配對 (全頁連續長捲動 + 防呆防重複 徹底修復版) =================
+  // ================= 模式一：打散代號配對 (左右雙欄獨立捲動 + 繁體筆劃排序 + 即時搜尋) =================
   function initMatchCodeMode() {
     DOM.progressBarFill.style.width = '100%';
     const totalQ = state.activeQuestions.length;
-    DOM.progressText.textContent = `共 ${totalQ} 題 (單頁向下連續捲動)`;
+    DOM.progressText.textContent = `共 ${totalQ} 題 (左右獨立滑動)`;
 
-    // 全卷唯一代號：<= 26 題使用 A~Z；> 26 題使用 1~N (如 1~30)，保證絕不重複碰撞
+    // 全卷唯一代號：<= 26 題使用 A~Z；> 26 題使用 1~N，保證絕不重複碰撞
     const useLetterCodes = totalQ <= 26;
 
     // 將所有題目的中文解釋進行全局隨機打散 (Fisher-Yates)
@@ -578,6 +578,12 @@
       };
     });
 
+    state.matchZhListOriginal = [...state.matchZhList]; // 原始打散順序
+    state.matchZhSortMode = 'random'; // random | stroke
+    state.matchZhKeyword = '';
+    state.matchHideUsed = false;
+    state.matchViewTab = 'dual'; // dual | en | zh
+
     // 建立正解映射：key = wordId, value = correctCode
     state.matchCorrectCodeMap = {};
     state.matchZhList.forEach(item => {
@@ -585,7 +591,7 @@
     });
 
     state.activeEnWordId = state.activeQuestions[0].id;
-    state.userAnswers = {}; // 清空並初始化作答容器
+    state.userAnswers = {}; // 清空作答容器
 
     renderMatchCodeContinuous();
   }
@@ -595,7 +601,7 @@
     const answeredCount = Object.keys(state.userAnswers).filter(k => state.userAnswers[k]).length;
     const unansweredCount = totalQ - answeredCount;
 
-    // 建立「代號已被哪一題使用」的反向字典 (全卷全局唯一防呆)
+    // 建立「代號已被哪一題使用」的反向字典 (全卷唯一防呆)
     const codeToWordMap = {}; // key: code, value: { wordId, qNumber }
     state.activeQuestions.forEach((q, idx) => {
       const assignedCode = state.userAnswers[q.id];
@@ -630,15 +636,31 @@
       `;
     }).join('');
 
-    // 右欄：打散中文解釋對照表 (全局唯一代號)
-    const zhListHtml = state.matchZhList.map(item => {
+    // 右欄：中文解釋列表 (處理筆劃排序、關鍵字搜尋與隱藏已選)
+    let displayZhList = [...state.matchZhListOriginal];
+
+    if (state.matchZhSortMode === 'stroke') {
+      // 繁體中文筆畫拼順排序
+      displayZhList.sort((a, b) => a.zh.localeCompare(b.zh, 'zh-Hant-TW', { collation: 'stroke' }));
+    }
+
+    if (state.matchZhKeyword) {
+      const kw = state.matchZhKeyword.toLowerCase().trim();
+      displayZhList = displayZhList.filter(item => item.zh.toLowerCase().includes(kw) || item.code.toLowerCase().includes(kw));
+    }
+
+    if (state.matchHideUsed) {
+      displayZhList = displayZhList.filter(item => !codeToWordMap[item.code]);
+    }
+
+    const zhListHtml = displayZhList.map(item => {
       const usage = codeToWordMap[item.code];
       const isUsed = !!usage;
       const usedClass = isUsed ? 'used' : '';
       const usedTag = isUsed ? `<span class="zh-used-tag">配對至 #${usage.qNumber}</span>` : '';
 
       return `
-        <div class="zh-reference-card ${usedClass}" data-code="${item.code}" data-wordid="${item.correctWordId}" id="zhCard_${item.code}" title="點選指派給選定之題目，再點可取消">
+        <div class="zh-reference-card ${usedClass}" data-code="${item.code}" data-wordid="${item.correctWordId}" id="zhCard_${item.code}" title="點選指派給選定題目，再點可取消">
           <div class="zh-code-badge">${item.code}</div>
           <div class="zh-meaning-text">${item.zh}</div>
           ${usedTag}
@@ -661,60 +683,79 @@
       <!-- 即時作答進度狀態條 -->
       <div class="matching-status-bar">
         <div>
-          <span>📝 測驗進度：</span>
+          <span>📝 進度：</span>
           <span>已填答 <b class="status-counter-tag" id="statusAnswered">${answeredCount}</b> / ${totalQ} 題</span>
           <span style="color: var(--accent-warning); margin-left: 8px;" id="unansweredText">
             ${unansweredCount > 0 ? `(尚餘 ${unansweredCount} 題未填)` : '🎉 全數填答完成！'}
           </span>
         </div>
-        <div style="font-size: 0.85rem; color: var(--accent-cyan);">
-          💡 點英文題再點右側中文即可快速配對 ｜ 單頁向下滑動作答到底
+        <div style="font-size: 0.82rem; color: var(--accent-cyan);">
+          💡 左右兩側可分別自由滑動！點題目再點中文即可秒配對
         </div>
       </div>
 
       <!-- 未填答題號快速直達導航雲 -->
       <div class="unanswered-tag-cloud" id="unansweredTagCloud" style="${unansweredCount === 0 ? 'display: none;' : ''}">
-        <span style="font-size: 0.82rem; color: #fbbf24; font-weight: 600;">⚠️ 尚未作答題號 (點題號直達)：</span>
+        <span style="font-size: 0.8rem; color: #fbbf24; font-weight: 600;">⚠️ 尚未作答 (點擊直達)：</span>
         <div style="display: flex; flex-wrap: wrap; gap: 4px;" id="unansweredButtonsWrap">
           ${unansweredBtnsHtml}
         </div>
       </div>
 
-      <!-- 手機快速跳轉/查看對照表按鈕 -->
-      <button type="button" class="mobile-view-toggle" id="btnToggleMobileZhView">
-        📖 點此查看 / 收合 中文解釋對照表 (共 ${state.matchZhList.length} 則)
-      </button>
+      <!-- 手機/視窗切換 Tabs (左右並排 / 僅題目 / 僅中文) -->
+      <div class="view-tabs-bar">
+        <button type="button" class="view-tab-btn ${state.matchViewTab === 'dual' ? 'active' : ''}" data-view="dual">📱 左右雙欄並排</button>
+        <button type="button" class="view-tab-btn ${state.matchViewTab === 'en' ? 'active' : ''}" data-view="en">🔤 僅看英文題目</button>
+        <button type="button" class="view-tab-btn ${state.matchViewTab === 'zh' ? 'active' : ''}" data-view="zh">📖 僅看中文對照</button>
+      </div>
 
-      <div class="matching-layout">
-        <!-- 左側：所有英文題目 (垂直連續長滾動) -->
-        <div class="matching-col">
+      <div class="matching-layout ${state.matchViewTab === 'en' ? 'view-en-only' : (state.matchViewTab === 'zh' ? 'view-zh-only' : '')}" id="matchingLayout">
+        <!-- 左側：所有英文題目 (獨立上下滑動) -->
+        <div class="matching-col col-en">
           <div class="col-header">
-            <span>🔤 英文題目清單 (共 ${totalQ} 題，一路向下滑動作答)</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted);">點題目可指定焦點</span>
+            <span>🔤 英文題目 (共 ${totalQ} 題，獨立滑動)</span>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">點題目可選定</span>
           </div>
-          <div class="en-match-list">
+          <div class="en-match-list" id="enMatchList">
             ${enListHtml}
           </div>
         </div>
 
-        <!-- 右側：中文解釋打散對照表 (桌機 Sticky 吸附跟隨滾動) -->
-        <div class="matching-col sticky-col" id="colZhReference">
+        <!-- 右側：中文解釋打散對照表 (獨立上下滑動 + 搜尋 + 筆劃排序) -->
+        <div class="matching-col col-zh" id="colZhReference">
           <div class="col-header">
-            <span>📖 中文解釋對照表 (隨機打散)</span>
-            <span style="font-size: 0.8rem; color: var(--accent-cyan);">點擊自動填入代號</span>
+            <span>📖 中文對照表 (獨立滑動)</span>
+            <span style="font-size: 0.78rem; color: var(--accent-cyan);">點擊自動代入</span>
           </div>
+
+          <!-- 查找工具列 (搜尋 + 筆劃排序 + 隱藏已配對) -->
+          <div class="zh-search-toolbar">
+            <div class="zh-search-input-wrap">
+              <input type="text" class="zh-search-input" id="inputZhSearch" placeholder="🔍 搜尋中文釋義關鍵字..." value="${state.matchZhKeyword}">
+              ${state.matchZhKeyword ? '<button type="button" class="zh-search-clear" id="btnClearZhSearch">✕</button>' : ''}
+            </div>
+            <div class="zh-tools-row">
+              <button type="button" class="btn-tool-pill ${state.matchZhSortMode === 'stroke' ? 'active' : ''}" id="btnToggleStrokeSort">
+                ${state.matchZhSortMode === 'stroke' ? '🔤 繁體筆劃排序 (開啟中)' : '🔀 依筆劃排序'}
+              </button>
+              <button type="button" class="btn-tool-pill ${state.matchHideUsed ? 'active' : ''}" id="btnToggleHideUsed">
+                ${state.matchHideUsed ? '👁️ 只顯示未配對 (開啟中)' : '👁️ 隱藏已配對'}
+              </button>
+            </div>
+          </div>
+
           <div class="zh-reference-list" id="zhReferenceList">
-            ${zhListHtml}
+            ${zhListHtml || '<div style="text-align: center; color: var(--text-dim); padding: 20px;">無符合之中文解釋</div>'}
           </div>
         </div>
       </div>
 
       <!-- 底部交卷區塊 -->
-      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-        <div style="color: var(--text-muted); font-size: 0.9rem;">
+      <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="color: var(--text-muted); font-size: 0.88rem;">
           已完成 <b style="color: var(--accent-cyan);" id="bottomAnswered">${answeredCount}</b> / ${totalQ} 題
         </div>
-        <button type="button" class="btn-primary-glow btn-fx" id="btnSubmitMatchQuiz" style="max-width: 260px;">
+        <button type="button" class="btn-primary-glow btn-fx" id="btnSubmitMatchQuiz" style="max-width: 240px; padding: 12px 20px;">
           <span>✅ 繳交試卷並對答案</span>
         </button>
       </div>
@@ -723,14 +764,106 @@
     bindMatchCodeContinuousEvents();
   }
 
+  // 局部重新整理右欄中文清單 (筆劃排序 / 搜尋 / 隱藏已配對)
+  function refreshZhListDOM() {
+    const zhListContainer = document.getElementById('zhReferenceList');
+    if (!zhListContainer) return;
+
+    const codeToWordMap = {};
+    state.activeQuestions.forEach((q, idx) => {
+      const assigned = state.userAnswers[q.id];
+      if (assigned) {
+        codeToWordMap[assigned] = { wordId: q.id, qNumber: idx + 1 };
+      }
+    });
+
+    let list = [...state.matchZhListOriginal];
+
+    if (state.matchZhSortMode === 'stroke') {
+      list.sort((a, b) => a.zh.localeCompare(b.zh, 'zh-Hant-TW', { collation: 'stroke' }));
+    }
+
+    if (state.matchZhKeyword) {
+      const kw = state.matchZhKeyword.toLowerCase().trim();
+      list = list.filter(item => item.zh.toLowerCase().includes(kw) || item.code.toLowerCase().includes(kw));
+    }
+
+    if (state.matchHideUsed) {
+      list = list.filter(item => !codeToWordMap[item.code]);
+    }
+
+    zhListContainer.innerHTML = list.map(item => {
+      const usage = codeToWordMap[item.code];
+      const isUsed = !!usage;
+      const usedClass = isUsed ? 'used' : '';
+      const usedTag = isUsed ? `<span class="zh-used-tag">配對至 #${usage.qNumber}</span>` : '';
+
+      return `
+        <div class="zh-reference-card ${usedClass}" data-code="${item.code}" data-wordid="${item.correctWordId}" id="zhCard_${item.code}" title="點選指派給選定題目，再點可取消">
+          <div class="zh-code-badge">${item.code}</div>
+          <div class="zh-meaning-text">${item.zh}</div>
+          ${usedTag}
+        </div>
+      `;
+    }).join('') || '<div style="text-align: center; color: var(--text-dim); padding: 20px;">無符合之中文解釋</div>';
+
+    bindZhCardClicks();
+  }
+
   // 綁定連續捲動配對事件
   function bindMatchCodeContinuousEvents() {
-    // 手機版切換查看中文對照表
-    const btnMobileToggle = document.getElementById('btnToggleMobileZhView');
-    const colZh = document.getElementById('colZhReference');
-    if (btnMobileToggle && colZh) {
-      btnMobileToggle.addEventListener('click', () => {
-        colZh.scrollIntoView({ behavior: 'smooth' });
+    // 視圖切換 (雙欄並排 / 僅題目 / 僅中文)
+    DOM.quizContentArea.querySelectorAll('.view-tab-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        soundClick();
+        state.matchViewTab = this.dataset.view;
+        const layout = document.getElementById('matchingLayout');
+        if (layout) {
+          layout.className = `matching-layout ${state.matchViewTab === 'en' ? 'view-en-only' : (state.matchViewTab === 'zh' ? 'view-zh-only' : '')}`;
+        }
+        DOM.quizContentArea.querySelectorAll('.view-tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // 中文搜尋框即時過濾
+    const inputSearch = document.getElementById('inputZhSearch');
+    const btnClearSearch = document.getElementById('btnClearZhSearch');
+    if (inputSearch) {
+      inputSearch.addEventListener('input', function () {
+        state.matchZhKeyword = this.value;
+        refreshZhListDOM();
+      });
+    }
+    if (btnClearSearch) {
+      btnClearSearch.addEventListener('click', function () {
+        state.matchZhKeyword = '';
+        if (inputSearch) inputSearch.value = '';
+        refreshZhListDOM();
+      });
+    }
+
+    // 繁體筆劃排序切換
+    const btnStrokeSort = document.getElementById('btnToggleStrokeSort');
+    if (btnStrokeSort) {
+      btnStrokeSort.addEventListener('click', function () {
+        soundClick();
+        state.matchZhSortMode = state.matchZhSortMode === 'stroke' ? 'random' : 'stroke';
+        this.classList.toggle('active', state.matchZhSortMode === 'stroke');
+        this.innerHTML = state.matchZhSortMode === 'stroke' ? '🔤 繁體筆劃排序 (開啟中)' : '🔀 依筆劃排序';
+        refreshZhListDOM();
+      });
+    }
+
+    // 隱藏已配對開關
+    const btnHideUsed = document.getElementById('btnToggleHideUsed');
+    if (btnHideUsed) {
+      btnHideUsed.addEventListener('click', function () {
+        soundClick();
+        state.matchHideUsed = !state.matchHideUsed;
+        this.classList.toggle('active', state.matchHideUsed);
+        this.innerHTML = state.matchHideUsed ? '👁️ 只顯示未配對 (開啟中)' : '👁️ 隱藏已配對';
+        refreshZhListDOM();
       });
     }
 
@@ -783,6 +916,23 @@
     });
 
     // 點擊中文卡片：指派至選定題目 或 取消配對 (全卷唯一防呆)
+    bindZhCardClicks();
+
+    // 語音發音
+    DOM.quizContentArea.querySelectorAll('.audio-btn').forEach(btn => {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const term = decodeURIComponent(this.dataset.audio);
+        speak(term);
+      });
+    });
+
+    // 繳卷按鈕
+    document.getElementById('btnSubmitMatchQuiz').addEventListener('click', finishMatchCodeQuizContinuous);
+  }
+
+  // 獨立中文卡片點擊綁定函式
+  function bindZhCardClicks() {
     DOM.quizContentArea.querySelectorAll('.zh-reference-card').forEach(card => {
       card.addEventListener('click', function () {
         const code = this.dataset.code;
@@ -833,18 +983,6 @@
         }
       });
     });
-
-    // 語音發音
-    DOM.quizContentArea.querySelectorAll('.audio-btn').forEach(btn => {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        const term = decodeURIComponent(this.dataset.audio);
-        speak(term);
-      });
-    });
-
-    // 繳卷按鈕
-    document.getElementById('btnSubmitMatchQuiz').addEventListener('click', finishMatchCodeQuizContinuous);
   }
 
   // 綁定未填答題號快速跳轉按鈕

@@ -92,21 +92,6 @@
     btnBackToHome: document.getElementById('btnBackToHome')
   };
 
-  // ================= 原生 Web Audio API 音效引擎 (零外部依賴) =================
-  let audioCtx = null;
-  function getAudioContext() {
-    if (!audioCtx) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtx = new AudioContextClass();
-      }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-    return audioCtx;
-  }
-
   // ================= 原生 Web Audio API 趣味電玩音效引擎 (零外部依賴) =================
   let audioCtx = null;
   function getAudioContext() {

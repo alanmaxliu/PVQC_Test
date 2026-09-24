@@ -539,12 +539,14 @@ body.fx-enabled .btn-fx:active {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* ================= 模式一：打散代號配對樣式 (防呆防重複升級) ================= */
+/* ================= 模式一：打散代號配對樣式 (連續長捲動 + 防呆防重複) ================= */
 .matching-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.15fr 0.85fr;
   gap: 20px;
+  align-items: start;
   margin-top: 10px;
+  position: relative;
 }
 
 .matching-col {
@@ -555,6 +557,60 @@ body.fx-enabled .btn-fx:active {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* 桌機右側中文對照表固定吸附 (Sticky) */
+.matching-col.sticky-col {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  background: rgba(17, 24, 39, 0.92);
+  backdrop-filter: blur(20px);
+  z-index: 10;
+}
+
+.matching-col.sticky-col .zh-reference-list {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.matching-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-counter-tag {
+  color: var(--accent-cyan);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* 手機版快速對照切換按鈕 */
+.mobile-view-toggle {
+  display: none;
+  width: 100%;
+  background: rgba(0, 242, 254, 0.12);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  padding: 10px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  cursor: pointer;
+  text-align: center;
 }
 
 .col-header {

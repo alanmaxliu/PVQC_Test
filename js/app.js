@@ -500,100 +500,89 @@
     }
   }
 
-  // ================= 模式一：打散代號配對 (防呆防重複升級) =================
+  // ================= 模式一：打散代號配對 (全頁連續長捲動 + 防呆防重複 徹底修復版) =================
   function initMatchCodeMode() {
     DOM.progressBarFill.style.width = '100%';
-    DOM.progressText.textContent = `共 ${state.activeQuestions.length} 題`;
-
     const totalQ = state.activeQuestions.length;
-    // 智慧分組：手機小螢幕每組 5 題最舒適，桌機超過 10 題切組
-    const isMobile = window.innerWidth <= 600;
-    const groupSize = isMobile ? 5 : (totalQ > 15 ? 10 : totalQ);
-    state.matchGroups = [];
+    DOM.progressText.textContent = `共 ${totalQ} 題 (單頁向下連續捲動)`;
 
-    for (let i = 0; i < totalQ; i += groupSize) {
-      const groupQuestions = state.activeQuestions.slice(i, i + groupSize);
-      const zhShuffled = shuffle(groupQuestions.map((q) => ({
-        originalQ: q,
-        zh: q.zh
-      }))).map((item, codeIdx) => ({
-        code: getCodeLabel(codeIdx),
+    // 全卷唯一代號：<= 26 題使用 A~Z；> 26 題使用 1~N (如 1~30)，保證絕不重複碰撞
+    const useLetterCodes = totalQ <= 26;
+
+    // 將所有題目的中文解釋進行全局隨機打散 (Fisher-Yates)
+    const zhPool = shuffle(state.activeQuestions.map(q => ({
+      originalQ: q,
+      zh: q.zh
+    })));
+
+    // 分配唯一的代號並建立正確答案對照字典
+    state.matchZhList = zhPool.map((item, idx) => {
+      const code = useLetterCodes ? getCodeLabel(idx) : String(idx + 1);
+      return {
+        code: code,
         zh: item.zh,
         correctWordId: item.originalQ.id
-      }));
+      };
+    });
 
-      state.matchGroups.push({
-        startIndex: i,
-        questions: groupQuestions,
-        zhList: zhShuffled
-      });
-    }
+    // 建立正解映射：key = wordId, value = correctCode
+    state.matchCorrectCodeMap = {};
+    state.matchZhList.forEach(item => {
+      state.matchCorrectCodeMap[item.correctWordId] = item.code;
+    });
 
-    state.matchCurrentGroup = 0;
-    state.activeEnWordId = state.matchGroups[0].questions[0].id;
-    renderMatchCodeGroup();
+    state.activeEnWordId = state.activeQuestions[0].id;
+    state.userAnswers = {}; // 清空並初始化作答容器
+
+    renderMatchCodeContinuous();
   }
 
-  function renderMatchCodeGroup() {
-    const group = state.matchGroups[state.matchCurrentGroup];
-    const totalGroups = state.matchGroups.length;
+  function renderMatchCodeContinuous() {
+    const totalQ = state.activeQuestions.length;
+    const answeredCount = Object.keys(state.userAnswers).filter(k => state.userAnswers[k]).length;
+    const unansweredCount = totalQ - answeredCount;
 
-    let groupTabsHtml = '';
-    if (totalGroups > 1) {
-      groupTabsHtml = `
-        <div class="group-pager">
-          <div style="font-size: 0.92rem; font-weight: 600; color: var(--accent-cyan);">
-            分組：第 ${state.matchCurrentGroup + 1} / ${totalGroups} 組 (本組 ${group.questions.length} 題)
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button type="button" class="btn-secondary btn-fx" id="btnPrevMatchGroup" ${state.matchCurrentGroup === 0 ? 'disabled' : ''}>← 上一組</button>
-            <button type="button" class="btn-secondary btn-fx" id="btnNextMatchGroup" ${state.matchCurrentGroup === totalGroups - 1 ? 'disabled' : ''}>下一組 →</button>
-          </div>
-        </div>
-      `;
-    }
-
-    // 建立「代號目前被哪一題使用」的反向索引字典 (防呆防重複)
-    const codeUsageMap = {}; // key: code, value: { wordId, questionNumber }
-    group.questions.forEach((q, idx) => {
-      const assigned = state.userAnswers[q.id];
-      if (assigned) {
-        codeUsageMap[assigned] = {
+    // 建立「代號已被哪一題使用」的反向字典 (全卷全局唯一防呆)
+    const codeToWordMap = {}; // key: code, value: { wordId, qNumber }
+    state.activeQuestions.forEach((q, idx) => {
+      const assignedCode = state.userAnswers[q.id];
+      if (assignedCode) {
+        codeToWordMap[assignedCode] = {
           wordId: q.id,
-          questionNumber: group.startIndex + idx + 1
+          qNumber: idx + 1
         };
       }
     });
 
-    // 左欄：英文清單
-    let enListHtml = group.questions.map((q, localIdx) => {
-      const globalIdx = group.startIndex + localIdx;
-      const currentVal = state.userAnswers[q.id] || '';
+    // 左欄：所有英文題目 (垂直連續排列，長滾動)
+    const enListHtml = state.activeQuestions.map((q, idx) => {
+      const currentCode = state.userAnswers[q.id] || '';
       const isActive = state.activeEnWordId === q.id;
 
       return `
-        <div class="en-match-item ${isActive ? 'active-focus' : ''}" data-id="${q.id}">
+        <div class="en-match-item ${isActive ? 'active-focus' : ''}" data-id="${q.id}" id="enItem_${q.id}">
           <div class="en-item-left">
-            <span class="en-idx-badge">#${globalIdx + 1}</span>
+            <span class="en-idx-badge">#${idx + 1}</span>
             <span class="en-term">${q.en}</span>
-            <button type="button" class="audio-btn" data-audio="${encodeURIComponent(q.en)}" title="播放發音">🔊</button>
+            <button type="button" class="audio-btn" data-audio="${encodeURIComponent(q.en)}" title="朗讀發音">🔊</button>
           </div>
           <div class="en-match-input-wrap">
-            <input type="text" class="match-code-input" data-qid="${q.id}" data-idx="${localIdx}" maxlength="3" value="${currentVal}" placeholder="?">
-            ${currentVal ? `<button type="button" class="btn-clear-code" data-qid="${q.id}" title="清除此題答案">✕</button>` : ''}
+            <input type="text" class="match-code-input" data-qid="${q.id}" data-idx="${idx}" maxlength="4" value="${currentCode}" placeholder="代號">
+            ${currentCode ? `<button type="button" class="btn-clear-code" data-qid="${q.id}" title="清除答案">✕</button>` : ''}
           </div>
         </div>
       `;
     }).join('');
 
-    // 右欄：中文打散對照表 (防呆已選標記)
-    let zhListHtml = group.zhList.map(item => {
-      const isUsedBy = codeUsageMap[item.code];
-      const usedClass = isUsedBy ? 'used' : '';
-      const usedTag = isUsedBy ? `<span class="zh-used-tag">配對至 #${isUsedBy.questionNumber}</span>` : '';
+    // 右欄：打散中文解釋對照表 (全局唯一代號)
+    const zhListHtml = state.matchZhList.map(item => {
+      const usage = codeToWordMap[item.code];
+      const isUsed = !!usage;
+      const usedClass = isUsed ? 'used' : '';
+      const usedTag = isUsed ? `<span class="zh-used-tag">配對至 #${usage.qNumber}</span>` : '';
 
       return `
-        <div class="zh-reference-card ${usedClass}" data-code="${item.code}" data-wordid="${item.correctWordId}">
+        <div class="zh-reference-card ${usedClass}" data-code="${item.code}" data-wordid="${item.correctWordId}" id="zhCard_${item.code}" title="點選指派給選定之題目，再點可取消">
           <div class="zh-code-badge">${item.code}</div>
           <div class="zh-meaning-text">${item.zh}</div>
           ${usedTag}
@@ -602,46 +591,73 @@
     }).join('');
 
     DOM.quizContentArea.innerHTML = `
-      ${groupTabsHtml}
-      <div style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">
-        💡 <b>手機/觸控操作技巧</b>：點選左側英文題目，再點右側中文卡片即可立即配對！已選過之代號會<b>自動防呆提示</b>，再次點擊可取消配對。
+      <!-- 即時作答進度狀態條 -->
+      <div class="matching-status-bar">
+        <div>
+          <span>📝 測驗進度：</span>
+          <span>已填答 <b class="status-counter-tag" id="statusAnswered">${answeredCount}</b> / ${totalQ} 題</span>
+          <span style="color: var(--text-dim); margin-left: 8px;">(待作答 ${unansweredCount} 題)</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--accent-cyan);">
+          💡 支援全頁滾動！點英文題目再點右側中文即可快速配對
+        </div>
       </div>
+
+      <!-- 手機快速跳轉/查看對照表按鈕 -->
+      <button type="button" class="mobile-view-toggle" id="btnToggleMobileZhView">
+        📖 點此查看 / 收合 中文解釋對照表 (共 ${state.matchZhList.length} 則)
+      </button>
+
       <div class="matching-layout">
-        <!-- 左側：英文清單 -->
+        <!-- 左側：所有英文題目 (垂直連續長滾動) -->
         <div class="matching-col">
           <div class="col-header">
-            <span>🔤 英文詞彙 (點選指定題目)</span>
-            <span style="font-size: 0.78rem; color: var(--text-muted);">填寫對應代號</span>
+            <span>🔤 英文題目清單 (共 ${totalQ} 題，一路向下滑動作答)</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">點題目可選定</span>
           </div>
           <div class="en-match-list">
             ${enListHtml}
           </div>
         </div>
-        <!-- 右側：中文解釋打散對照表 -->
-        <div class="matching-col">
+
+        <!-- 右側：中文解釋打散對照表 (桌機 Sticky 吸附跟隨滾動) -->
+        <div class="matching-col sticky-col" id="colZhReference">
           <div class="col-header">
-            <span>📖 中文解釋對照表 (打散)</span>
-            <span style="font-size: 0.78rem; color: var(--accent-cyan);">點選直接代入</span>
+            <span>📖 中文解釋對照表 (隨機打散)</span>
+            <span style="font-size: 0.8rem; color: var(--accent-cyan);">點擊自動填入代號</span>
           </div>
-          <div class="zh-reference-list">
+          <div class="zh-reference-list" id="zhReferenceList">
             ${zhListHtml}
           </div>
         </div>
       </div>
 
-      <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 14px;">
-        <button type="button" class="btn-primary-glow btn-fx" id="btnSubmitMatchQuiz" style="max-width: 240px;">
+      <!-- 底部交卷區塊 -->
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div style="color: var(--text-muted); font-size: 0.9rem;">
+          已完成 <b style="color: var(--accent-cyan);" id="bottomAnswered">${answeredCount}</b> / ${totalQ} 題
+        </div>
+        <button type="button" class="btn-primary-glow btn-fx" id="btnSubmitMatchQuiz" style="max-width: 260px;">
           <span>✅ 繳交試卷並對答案</span>
         </button>
       </div>
     `;
 
-    bindMatchCodeInteractions(group);
+    bindMatchCodeContinuousEvents();
   }
 
-  // 綁定模式一防呆防重複與觸控互動
-  function bindMatchCodeInteractions(group) {
-    // 點選英文卡行：設為作用中目標
+  // 綁定連續捲動配對事件
+  function bindMatchCodeContinuousEvents() {
+    // 手機版切換查看中文對照表
+    const btnMobileToggle = document.getElementById('btnToggleMobileZhView');
+    const colZh = document.getElementById('colZhReference');
+    if (btnMobileToggle && colZh) {
+      btnMobileToggle.addEventListener('click', () => {
+        colZh.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+
+    // 點選英文題整行：設為選定目標 (Active Focus)
     DOM.quizContentArea.querySelectorAll('.en-match-item').forEach(item => {
       item.addEventListener('click', function (e) {
         if (e.target.closest('.audio-btn') || e.target.closest('.btn-clear-code') || e.target.closest('input')) {
@@ -650,7 +666,10 @@
         const qid = parseInt(this.dataset.id, 10);
         state.activeEnWordId = qid;
         soundClick();
-        renderMatchCodeGroup();
+
+        // 僅切換 Active Focus 樣式，避免重繪整個 DOM 丟失滾動位置！
+        DOM.quizContentArea.querySelectorAll('.en-match-item').forEach(el => el.classList.remove('active-focus'));
+        this.classList.add('active-focus');
       });
     });
 
@@ -660,72 +679,81 @@
         e.stopPropagation();
         soundClick();
         const qid = parseInt(this.dataset.qid, 10);
+        const oldCode = state.userAnswers[qid];
         delete state.userAnswers[qid];
-        renderMatchCodeGroup();
+
+        // 局部更新 UI，不破壞捲動位置
+        updateMatchRowUI(qid, '');
+        if (oldCode) updateZhCardUI(oldCode);
+        updateMatchCounters();
       });
     });
 
-    // 鍵盤輸入事件 (防呆重複檢測)
+    // 鍵盤輸入事件 (全卷唯一防呆檢查)
     DOM.quizContentArea.querySelectorAll('.match-code-input').forEach(input => {
       input.addEventListener('focus', function () {
         state.activeEnWordId = parseInt(this.dataset.qid, 10);
-        // 高亮對應行
         DOM.quizContentArea.querySelectorAll('.en-match-item').forEach(el => el.classList.remove('active-focus'));
         this.closest('.en-match-item').classList.add('active-focus');
       });
 
-      input.addEventListener('change', function () {
+      input.addEventListener('input', function () {
         const val = this.value.toUpperCase().trim();
         const qid = parseInt(this.dataset.qid, 10);
-        assignCodeToWord(qid, val, group);
+        applyCodeAssignment(qid, val);
       });
     });
 
-    // 點擊中文卡片：防呆配對與取消
+    // 點擊中文卡片：指派至選定題目 或 取消配對 (全卷唯一防呆)
     DOM.quizContentArea.querySelectorAll('.zh-reference-card').forEach(card => {
       card.addEventListener('click', function () {
         const code = this.dataset.code;
 
-        // 檢查此代號是否已被其他題目使用 (防呆機制)
-        let usedByWordId = null;
+        // 檢查該代號目前是否已被某題使用
+        let currentOwnerWordId = null;
         for (const [wId, c] of Object.entries(state.userAnswers)) {
           if (c === code) {
-            usedByWordId = parseInt(wId, 10);
+            currentOwnerWordId = parseInt(wId, 10);
             break;
           }
         }
 
-        // 若點擊的是目前作用中題目的現有答案 -> 視為取消配對
-        if (usedByWordId === state.activeEnWordId) {
+        // 若該卡片已被目前選中的題目使用 -> 取消配對
+        if (currentOwnerWordId === state.activeEnWordId) {
           delete state.userAnswers[state.activeEnWordId];
           soundClick();
-          renderMatchCodeGroup();
+          updateMatchRowUI(state.activeEnWordId, '');
+          updateZhCardUI(code);
+          updateMatchCounters();
           return;
         }
 
-        // 若無目前作用中題目，自動找第一個本組尚未作答之題目
+        // 若目前沒有指定題目或選定題已有答案，自動找第一個未作答的題目
         if (!state.activeEnWordId || state.userAnswers[state.activeEnWordId]) {
-          const firstUnanswered = group.questions.find(q => !state.userAnswers[q.id]);
+          const firstUnanswered = state.activeQuestions.find(q => !state.userAnswers[q.id]);
           if (firstUnanswered) {
             state.activeEnWordId = firstUnanswered.id;
           }
         }
 
         if (state.activeEnWordId) {
-          // 若該代號已被別題使用，自動將該代號自舊題釋放並轉移至新選題 (防呆防重複)
-          if (usedByWordId && usedByWordId !== state.activeEnWordId) {
-            delete state.userAnswers[usedByWordId];
-          }
-          state.userAnswers[state.activeEnWordId] = code;
+          applyCodeAssignment(state.activeEnWordId, code);
           soundClick();
 
-          // 自動跳至下一個尚未作答的題目
-          const nextUnanswered = group.questions.find(q => q.id !== state.activeEnWordId && !state.userAnswers[q.id]);
+          // 視覺微動反饋
+          this.style.transform = 'scale(0.97)';
+          setTimeout(() => { this.style.transform = ''; }, 120);
+
+          // 自動平滑跳轉到下一題未填寫的題目
+          const nextUnanswered = state.activeQuestions.find(q => q.id !== state.activeEnWordId && !state.userAnswers[q.id]);
           if (nextUnanswered) {
             state.activeEnWordId = nextUnanswered.id;
+            DOM.quizContentArea.querySelectorAll('.en-match-item').forEach(el => el.classList.remove('active-focus'));
+            const nextItemEl = document.getElementById(`enItem_${nextUnanswered.id}`);
+            if (nextItemEl) {
+              nextItemEl.classList.add('active-focus');
+            }
           }
-
-          renderMatchCodeGroup();
         }
       });
     });
@@ -739,67 +767,153 @@
       });
     });
 
-    // 分組切換按鈕
-    const btnPrev = document.getElementById('btnPrevMatchGroup');
-    const btnNext = document.getElementById('btnNextMatchGroup');
-    if (btnPrev) {
-      btnPrev.addEventListener('click', () => {
-        if (state.matchCurrentGroup > 0) {
-          soundClick();
-          state.matchCurrentGroup--;
-          state.activeEnWordId = state.matchGroups[state.matchCurrentGroup].questions[0].id;
-          renderMatchCodeGroup();
-        }
-      });
-    }
-    if (btnNext) {
-      btnNext.addEventListener('click', () => {
-        if (state.matchCurrentGroup < state.matchGroups.length - 1) {
-          soundClick();
-          state.matchCurrentGroup++;
-          state.activeEnWordId = state.matchGroups[state.matchCurrentGroup].questions[0].id;
-          renderMatchCodeGroup();
-        }
-      });
-    }
-
     // 繳卷按鈕
-    document.getElementById('btnSubmitMatchQuiz').addEventListener('click', finishMatchCodeQuiz);
+    document.getElementById('btnSubmitMatchQuiz').addEventListener('click', finishMatchCodeQuizContinuous);
   }
 
-  function assignCodeToWord(wordId, code, group) {
-    if (!code) {
-      delete state.userAnswers[wordId];
-      renderMatchCodeGroup();
+  // 代號指派核心 (全卷全局唯一防呆，若重複自動釋放舊題，絕不丟失答案)
+  function applyCodeAssignment(targetWordId, newCode) {
+    if (!newCode) {
+      const oldCode = state.userAnswers[targetWordId];
+      delete state.userAnswers[targetWordId];
+      updateMatchRowUI(targetWordId, '');
+      if (oldCode) updateZhCardUI(oldCode);
+      updateMatchCounters();
       return;
     }
-    // 防呆：檢查是否重複
+
+    // 格式標準化 (大寫)
+    const upperCode = newCode.toUpperCase().trim();
+
+    // 1. 檢查是否有別的題目已經佔用此代號 (全卷防呆)
+    let evictedWordId = null;
     for (const [wId, c] of Object.entries(state.userAnswers)) {
-      if (parseInt(wId, 10) !== wordId && c === code) {
-        delete state.userAnswers[wId]; // 釋放舊題
+      const numId = parseInt(wId, 10);
+      if (numId !== targetWordId && c === upperCode) {
+        evictedWordId = numId;
+        delete state.userAnswers[numId]; // 釋放舊題目
+        break;
       }
     }
-    state.userAnswers[wordId] = code;
-    soundClick();
-    renderMatchCodeGroup();
+
+    // 2. 取得此目標題目先前填寫的舊代號
+    const previousCode = state.userAnswers[targetWordId];
+
+    // 3. 指派新代號
+    state.userAnswers[targetWordId] = upperCode;
+
+    // 4. 精準局部更新 DOM (絕不重新渲染整頁，保證長捲動位置完全不動！)
+    updateMatchRowUI(targetWordId, upperCode);
+    if (evictedWordId) updateMatchRowUI(evictedWordId, '');
+
+    updateZhCardUI(upperCode);
+    if (previousCode && previousCode !== upperCode) updateZhCardUI(previousCode);
+
+    updateMatchCounters();
   }
 
-  // 模式一結算
-  function finishMatchCodeQuiz() {
+  // 局部更新單一英文題目行 DOM
+  function updateMatchRowUI(wordId, code) {
+    const itemEl = document.getElementById(`enItem_${wordId}`);
+    if (!itemEl) return;
+    const input = itemEl.querySelector('.match-code-input');
+    if (input && input.value !== code) {
+      input.value = code;
+    }
+    const wrap = itemEl.querySelector('.en-match-input-wrap');
+    let clearBtn = wrap.querySelector('.btn-clear-code');
+    if (code) {
+      if (!clearBtn) {
+        clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn-clear-code';
+        clearBtn.dataset.qid = wordId;
+        clearBtn.title = '清除答案';
+        clearBtn.textContent = '✕';
+        clearBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          soundClick();
+          applyCodeAssignment(wordId, '');
+        });
+        wrap.appendChild(clearBtn);
+      }
+    } else {
+      if (clearBtn) clearBtn.remove();
+    }
+  }
+
+  // 局部更新單一中文卡片 DOM (已配對標記與樣式)
+  function updateZhCardUI(code) {
+    const card = document.getElementById(`zhCard_${code}`);
+    if (!card) return;
+
+    // 尋找此代號被哪一題使用
+    let ownerIndex = -1;
+    for (const [wId, c] of Object.entries(state.userAnswers)) {
+      if (c === code) {
+        const foundIdx = state.activeQuestions.findIndex(q => q.id === parseInt(wId, 10));
+        if (foundIdx !== -1) {
+          ownerIndex = foundIdx + 1;
+        }
+        break;
+      }
+    }
+
+    let tagEl = card.querySelector('.zh-used-tag');
+    if (ownerIndex !== -1) {
+      card.classList.add('used');
+      if (!tagEl) {
+        tagEl = document.createElement('span');
+        tagEl.className = 'zh-used-tag';
+        card.appendChild(tagEl);
+      }
+      tagEl.textContent = `配對至 #${ownerIndex}`;
+    } else {
+      card.classList.remove('used');
+      if (tagEl) tagEl.remove();
+    }
+  }
+
+  // 即時更新計數器
+  function updateMatchCounters() {
+    const totalQ = state.activeQuestions.length;
+    const answeredCount = Object.keys(state.userAnswers).filter(k => state.userAnswers[k]).length;
+    const elAnswered = document.getElementById('statusAnswered');
+    const elBottom = document.getElementById('bottomAnswered');
+    if (elAnswered) elAnswered.textContent = answeredCount;
+    if (elBottom) elBottom.textContent = answeredCount;
+  }
+
+  // 繳卷結算 (全卷驗證 + 未填防呆確認)
+  function finishMatchCodeQuizContinuous() {
+    const totalQ = state.activeQuestions.length;
+    const answeredCount = Object.keys(state.userAnswers).filter(k => state.userAnswers[k]).length;
+    const unansweredCount = totalQ - answeredCount;
+
+    // 未填題防呆提醒
+    if (unansweredCount > 0) {
+      const confirmSubmit = confirm(`⚠️ 提醒：您還有 ${unansweredCount} 題尚未填答！\n\n按下「確定」將直接繳卷；按下「取消」可繼續完成未填題目。`);
+      if (!confirmSubmit) {
+        // 自動平滑滾動到第一個未填寫的題目
+        const firstMissing = state.activeQuestions.find(q => !state.userAnswers[q.id]);
+        if (firstMissing) {
+          const el = document.getElementById(`enItem_${firstMissing.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.click();
+          }
+        }
+        return;
+      }
+    }
+
     stopTimer();
     let correctCount = 0;
     let wrongCount = 0;
     const mistakes = [];
 
-    const codeMap = {};
-    state.matchGroups.forEach(grp => {
-      grp.zhList.forEach(item => {
-        codeMap[item.correctWordId] = item.code;
-      });
-    });
-
     state.activeQuestions.forEach(q => {
-      const correctCode = codeMap[q.id];
+      const correctCode = state.matchCorrectCodeMap[q.id];
       const userCode = (state.userAnswers[q.id] || '').trim().toUpperCase();
 
       if (userCode && userCode === correctCode) {
@@ -808,15 +922,15 @@
         wrongCount++;
         mistakes.push({
           question: q,
-          yourAnswer: userCode || '(未填答)',
-          correctAnswer: `${correctCode} [${q.zh}]`
+          yourAnswer: userCode ? `代號 [${userCode}]` : '(未填答)',
+          correctAnswer: `代號 [${correctCode}] - ${q.zh}`
         });
       }
     });
 
     state.results.correct = correctCount;
     state.results.wrong = wrongCount;
-    state.results.total = state.activeQuestions.length;
+    state.results.total = totalQ;
     state.results.mistakes = mistakes;
 
     showResultScreen();

@@ -107,111 +107,179 @@
     return audioCtx;
   }
 
-  function playTone(freq, type = 'sine', duration = 0.12, gainVal = 0.15) {
+  // ================= 原生 Web Audio API 趣味電玩音效引擎 (零外部依賴) =================
+  let audioCtx = null;
+  function getAudioContext() {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  // 俏皮氣泡啵啵聲 (Bubble Pop)
+  function soundClick() {
     if (!state.effectsEnabled) return;
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
+      const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(gainVal, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(450, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.06);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + duration);
-    } catch (e) {
-      // 靜音防護
-    }
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } catch (e) {}
   }
 
-  function soundClick() {
-    playTone(600, 'triangle', 0.05, 0.08);
+  // 填入代號清脆叮鈴聲 (Coin Ding)
+  function soundAssign() {
+    if (!state.effectsEnabled) return;
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(987.77, now); // B5
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch (e) {}
   }
 
+  // 清除代號喀噠聲 (Soft Tick)
+  function soundClear() {
+    if (!state.effectsEnabled) return;
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(260, now + 0.05);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } catch (e) {}
+  }
+
+  // 答對電玩金幣聲 (Mario Coin: B5 -> E6 清脆雙音)
   function soundCorrect() {
     if (!state.effectsEnabled) return;
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
       const now = ctx.currentTime;
-      [523.25, 659.25, 783.99].forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.12, now + idx * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.18);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + idx * 0.08);
-        osc.stop(now + idx * 0.08 + 0.18);
-      });
+      // 音符 1: B5 (987.77Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(987.77, now);
+      gain1.gain.setValueAtTime(0.18, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.09);
+
+      // 音符 2: E6 (1318.51Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1318.51, now + 0.08);
+      gain2.gain.setValueAtTime(0.22, now + 0.08);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.08);
+      osc2.stop(now + 0.35);
     } catch (e) {}
   }
 
+  // 答錯趣味彈性滑音 (Boing / Wah)
   function soundWrong() {
     if (!state.effectsEnabled) return;
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
       const now = ctx.currentTime;
-      [320, 240].forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.1, now + idx * 0.12);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.2);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + idx * 0.12);
-        osc.stop(now + idx * 0.12 + 0.2);
-      });
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.28);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
     } catch (e) {}
   }
 
+  // 凱旋通關大和弦 (C5, G5, C6, E6, G6 華麗琶音)
   function soundPassFanfare() {
     if (!state.effectsEnabled) return;
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
       const now = ctx.currentTime;
-      // C5, E5, G5, C6 凱旋大三和弦
-      const notes = [523.25, 659.25, 783.99, 1046.50];
+      const notes = [523.25, 783.99, 1046.50, 1318.51, 1567.98];
       notes.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.16, now + idx * 0.14);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.14 + 0.45);
+        osc.frequency.setValueAtTime(freq, now + idx * 0.11);
+        gain.gain.setValueAtTime(0.18, now + idx * 0.11);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.11 + 0.48);
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.start(now + idx * 0.14);
-        osc.stop(now + idx * 0.14 + 0.45);
+        osc.start(now + idx * 0.11);
+        osc.stop(now + idx * 0.11 + 0.48);
       });
     } catch (e) {}
   }
 
+  // 未合格搞笑退場音 (Wah-wah-wah-waaah)
   function soundFail() {
     if (!state.effectsEnabled) return;
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
       const now = ctx.currentTime;
-      [311.13, 293.66, 277.18, 246.94].forEach((freq, idx) => {
+      const notes = [293.66, 277.18, 261.63, 246.94];
+      notes.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.12, now + idx * 0.16);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.16 + 0.35);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.18);
+        gain.gain.setValueAtTime(0.1, now + idx * 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.18 + 0.32);
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.start(now + idx * 0.16);
-        osc.stop(now + idx * 0.16 + 0.35);
+        osc.start(now + idx * 0.18);
+        osc.stop(now + idx * 0.18 + 0.32);
       });
     } catch (e) {}
   }
@@ -564,6 +632,9 @@
           <div class="en-item-left">
             <span class="en-idx-badge">#${idx + 1}</span>
             <span class="en-term">${q.en}</span>
+            <span class="en-status-pill ${currentCode ? 'filled' : 'pending'}" id="statusPill_${q.id}">
+              ${currentCode ? `✅ 配對 [${currentCode}]` : '⚠️ 待作答'}
+            </span>
             <button type="button" class="audio-btn" data-audio="${encodeURIComponent(q.en)}" title="朗讀發音">🔊</button>
           </div>
           <div class="en-match-input-wrap">
@@ -590,16 +661,37 @@
       `;
     }).join('');
 
+    // 產生未填答題號快速跳轉按鈕
+    const unansweredList = state.activeQuestions
+      .map((q, idx) => ({ id: q.id, num: idx + 1, answered: !!state.userAnswers[q.id] }))
+      .filter(item => !item.answered);
+
+    const unansweredBtnsHtml = unansweredList.map(item => `
+      <button type="button" class="unanswered-num-btn" data-qid="${item.id}" title="直達第 ${item.num} 題">
+        #${item.num}
+      </button>
+    `).join('');
+
     DOM.quizContentArea.innerHTML = `
       <!-- 即時作答進度狀態條 -->
       <div class="matching-status-bar">
         <div>
           <span>📝 測驗進度：</span>
           <span>已填答 <b class="status-counter-tag" id="statusAnswered">${answeredCount}</b> / ${totalQ} 題</span>
-          <span style="color: var(--text-dim); margin-left: 8px;">(待作答 ${unansweredCount} 題)</span>
+          <span style="color: var(--accent-warning); margin-left: 8px;" id="unansweredText">
+            ${unansweredCount > 0 ? `(尚餘 ${unansweredCount} 題未填)` : '🎉 全數填答完成！'}
+          </span>
         </div>
         <div style="font-size: 0.85rem; color: var(--accent-cyan);">
-          💡 支援全頁滾動！點英文題目再點右側中文即可快速配對
+          💡 點英文題再點右側中文即可快速配對 ｜ 單頁向下滑動作答到底
+        </div>
+      </div>
+
+      <!-- 未填答題號快速直達導航雲 -->
+      <div class="unanswered-tag-cloud" id="unansweredTagCloud" style="${unansweredCount === 0 ? 'display: none;' : ''}">
+        <span style="font-size: 0.82rem; color: #fbbf24; font-weight: 600;">⚠️ 尚未作答題號 (點題號直達)：</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px;" id="unansweredButtonsWrap">
+          ${unansweredBtnsHtml}
         </div>
       </div>
 
@@ -613,7 +705,7 @@
         <div class="matching-col">
           <div class="col-header">
             <span>🔤 英文題目清單 (共 ${totalQ} 題，一路向下滑動作答)</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted);">點題目可選定</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">點題目可指定焦點</span>
           </div>
           <div class="en-match-list">
             ${enListHtml}
@@ -657,6 +749,9 @@
       });
     }
 
+    // 未填答導航按鈕直達點擊事件
+    bindUnansweredNavButtons();
+
     // 點選英文題整行：設為選定目標 (Active Focus)
     DOM.quizContentArea.querySelectorAll('.en-match-item').forEach(item => {
       item.addEventListener('click', function (e) {
@@ -667,7 +762,6 @@
         state.activeEnWordId = qid;
         soundClick();
 
-        // 僅切換 Active Focus 樣式，避免重繪整個 DOM 丟失滾動位置！
         DOM.quizContentArea.querySelectorAll('.en-match-item').forEach(el => el.classList.remove('active-focus'));
         this.classList.add('active-focus');
       });
@@ -677,12 +771,11 @@
     DOM.quizContentArea.querySelectorAll('.btn-clear-code').forEach(btn => {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        soundClick();
+        soundClear();
         const qid = parseInt(this.dataset.qid, 10);
         const oldCode = state.userAnswers[qid];
         delete state.userAnswers[qid];
 
-        // 局部更新 UI，不破壞捲動位置
         updateMatchRowUI(qid, '');
         if (oldCode) updateZhCardUI(oldCode);
         updateMatchCounters();
@@ -709,7 +802,6 @@
       card.addEventListener('click', function () {
         const code = this.dataset.code;
 
-        // 檢查該代號目前是否已被某題使用
         let currentOwnerWordId = null;
         for (const [wId, c] of Object.entries(state.userAnswers)) {
           if (c === code) {
@@ -721,7 +813,7 @@
         // 若該卡片已被目前選中的題目使用 -> 取消配對
         if (currentOwnerWordId === state.activeEnWordId) {
           delete state.userAnswers[state.activeEnWordId];
-          soundClick();
+          soundClear();
           updateMatchRowUI(state.activeEnWordId, '');
           updateZhCardUI(code);
           updateMatchCounters();
@@ -738,7 +830,6 @@
 
         if (state.activeEnWordId) {
           applyCodeAssignment(state.activeEnWordId, code);
-          soundClick();
 
           // 視覺微動反饋
           this.style.transform = 'scale(0.97)';
@@ -771,18 +862,39 @@
     document.getElementById('btnSubmitMatchQuiz').addEventListener('click', finishMatchCodeQuizContinuous);
   }
 
+  // 綁定未填答題號快速跳轉按鈕
+  function bindUnansweredNavButtons() {
+    DOM.quizContentArea.querySelectorAll('.unanswered-num-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const qid = parseInt(this.dataset.qid, 10);
+        soundClick();
+        state.activeEnWordId = qid;
+        const targetEl = document.getElementById(`enItem_${qid}`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          DOM.quizContentArea.querySelectorAll('.en-match-item').forEach(el => el.classList.remove('active-focus'));
+          targetEl.classList.add('active-focus');
+          targetEl.classList.add('pulse-missing');
+          setTimeout(() => targetEl.classList.remove('pulse-missing'), 1500);
+          const inp = targetEl.querySelector('.match-code-input');
+          if (inp) inp.focus();
+        }
+      });
+    });
+  }
+
   // 代號指派核心 (全卷全局唯一防呆，若重複自動釋放舊題，絕不丟失答案)
   function applyCodeAssignment(targetWordId, newCode) {
     if (!newCode) {
       const oldCode = state.userAnswers[targetWordId];
       delete state.userAnswers[targetWordId];
+      soundClear();
       updateMatchRowUI(targetWordId, '');
       if (oldCode) updateZhCardUI(oldCode);
       updateMatchCounters();
       return;
     }
 
-    // 格式標準化 (大寫)
     const upperCode = newCode.toUpperCase().trim();
 
     // 1. 檢查是否有別的題目已經佔用此代號 (全卷防呆)
@@ -801,8 +913,9 @@
 
     // 3. 指派新代號
     state.userAnswers[targetWordId] = upperCode;
+    soundAssign(); // 趣味指派叮鈴聲！
 
-    // 4. 精準局部更新 DOM (絕不重新渲染整頁，保證長捲動位置完全不動！)
+    // 4. 精準局部更新 DOM (絕不重刷整頁，長滾動位置完全不動)
     updateMatchRowUI(targetWordId, upperCode);
     if (evictedWordId) updateMatchRowUI(evictedWordId, '');
 
@@ -820,6 +933,21 @@
     if (input && input.value !== code) {
       input.value = code;
     }
+
+    // 更新膠囊狀態標籤
+    let pill = itemEl.querySelector('.en-status-pill');
+    if (pill) {
+      if (code) {
+        pill.className = 'en-status-pill filled';
+        pill.innerHTML = `✅ 配對 [${code}]`;
+        itemEl.classList.remove('pulse-missing');
+      } else {
+        pill.className = 'en-status-pill pending';
+        pill.innerHTML = '⚠️ 待作答';
+      }
+    }
+
+    // 更新清除按鈕
     const wrap = itemEl.querySelector('.en-match-input-wrap');
     let clearBtn = wrap.querySelector('.btn-clear-code');
     if (code) {
@@ -832,7 +960,6 @@
         clearBtn.textContent = '✕';
         clearBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          soundClick();
           applyCodeAssignment(wordId, '');
         });
         wrap.appendChild(clearBtn);
@@ -847,7 +974,6 @@
     const card = document.getElementById(`zhCard_${code}`);
     if (!card) return;
 
-    // 尋找此代號被哪一題使用
     let ownerIndex = -1;
     for (const [wId, c] of Object.entries(state.userAnswers)) {
       if (c === code) {
@@ -874,33 +1000,88 @@
     }
   }
 
-  // 即時更新計數器
+  // 即時更新計數器與未填答導航清單
   function updateMatchCounters() {
     const totalQ = state.activeQuestions.length;
     const answeredCount = Object.keys(state.userAnswers).filter(k => state.userAnswers[k]).length;
+    const unansweredCount = totalQ - answeredCount;
+
     const elAnswered = document.getElementById('statusAnswered');
     const elBottom = document.getElementById('bottomAnswered');
+    const elUnansweredText = document.getElementById('unansweredText');
+    const tagCloud = document.getElementById('unansweredTagCloud');
+    const btnsWrap = document.getElementById('unansweredButtonsWrap');
+
     if (elAnswered) elAnswered.textContent = answeredCount;
     if (elBottom) elBottom.textContent = answeredCount;
+
+    if (elUnansweredText) {
+      elUnansweredText.textContent = unansweredCount > 0 ? `(尚餘 ${unansweredCount} 題未填)` : '🎉 全數填答完成！';
+      elUnansweredText.style.color = unansweredCount > 0 ? 'var(--accent-warning)' : 'var(--accent-success)';
+    }
+
+    if (tagCloud && btnsWrap) {
+      if (unansweredCount === 0) {
+        tagCloud.style.display = 'none';
+      } else {
+        tagCloud.style.display = 'flex';
+        const unansweredList = state.activeQuestions
+          .map((q, idx) => ({ id: q.id, num: idx + 1, answered: !!state.userAnswers[q.id] }))
+          .filter(item => !item.answered);
+
+        btnsWrap.innerHTML = unansweredList.map(item => `
+          <button type="button" class="unanswered-num-btn" data-qid="${item.id}" title="直達第 ${item.num} 題">
+            #${item.num}
+          </button>
+        `).join('');
+
+        bindUnansweredNavButtons();
+      }
+    }
   }
 
-  // 繳卷結算 (全卷驗證 + 未填防呆確認)
+  // 繳卷結算 (未填提示 + 高亮未填題目發光)
   function finishMatchCodeQuizContinuous() {
     const totalQ = state.activeQuestions.length;
     const answeredCount = Object.keys(state.userAnswers).filter(k => state.userAnswers[k]).length;
     const unansweredCount = totalQ - answeredCount;
 
-    // 未填題防呆提醒
+    // 未填題防呆提醒與發光導引
     if (unansweredCount > 0) {
-      const confirmSubmit = confirm(`⚠️ 提醒：您還有 ${unansweredCount} 題尚未填答！\n\n按下「確定」將直接繳卷；按下「取消」可繼續完成未填題目。`);
+      soundWrong(); // 逗趣提醒音
+
+      // 高亮所有未填題目發光
+      const missingQuestions = state.activeQuestions.filter(q => !state.userAnswers[q.id]);
+      missingQuestions.forEach(q => {
+        const itemEl = document.getElementById(`enItem_${q.id}`);
+        if (itemEl) {
+          itemEl.classList.add('pulse-missing');
+          setTimeout(() => itemEl.classList.remove('pulse-missing'), 3500);
+        }
+      });
+
+      const missingNums = missingQuestions.map(q => {
+        const idx = state.activeQuestions.findIndex(x => x.id === q.id);
+        return `#${idx + 1}`;
+      }).slice(0, 8).join(', ');
+
+      const moreHint = missingQuestions.length > 8 ? ` 等共 ${missingQuestions.length} 題` : '';
+
+      const confirmSubmit = confirm(
+        `⚠️ 還有 ${unansweredCount} 題未作答！\n未填題號：${missingNums}${moreHint}\n\n畫面上已為您亮起黃色呼吸光。\n按下「確定」將直接強制繳卷；按下「取消」可點擊題號直達作答。`
+      );
+
       if (!confirmSubmit) {
         // 自動平滑滾動到第一個未填寫的題目
-        const firstMissing = state.activeQuestions.find(q => !state.userAnswers[q.id]);
+        const firstMissing = missingQuestions[0];
         if (firstMissing) {
           const el = document.getElementById(`enItem_${firstMissing.id}`);
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.click();
+            DOM.quizContentArea.querySelectorAll('.en-match-item').forEach(x => x.classList.remove('active-focus'));
+            el.classList.add('active-focus');
+            const inp = el.querySelector('.match-code-input');
+            if (inp) inp.focus();
           }
         }
         return;

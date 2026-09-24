@@ -181,6 +181,40 @@ body {
   box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
 }
 
+/* 版本號小標章 */
+.version-pill {
+  font-size: 0.72rem;
+  background: rgba(0, 242, 254, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  display: inline-block;
+}
+
+.version-tag-sub {
+  font-size: 0.78rem;
+  color: var(--accent-cyan);
+  background: rgba(0, 242, 254, 0.08);
+  border: 1px solid rgba(0, 242, 254, 0.2);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.section-step-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  background: var(--gradient-tech);
+  color: #070b14;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
 /* 特效與音效開關切換按鈕 */
 .effect-toggle-btn {
   display: inline-flex;
@@ -661,6 +695,70 @@ body.fx-enabled .btn-fx:active {
 .en-match-item.wrong {
   border-color: var(--accent-error);
   background: rgba(239, 68, 68, 0.12);
+}
+
+/* 未填答呼吸光提示 */
+@keyframes pulseMissing {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); border-color: var(--accent-warning); }
+  70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); border-color: var(--accent-warning); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); border-color: var(--accent-warning); }
+}
+
+.en-match-item.pulse-missing {
+  border-color: var(--accent-warning) !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+  animation: pulseMissing 1.2s infinite;
+}
+
+.en-status-pill {
+  font-size: 0.74rem;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 500;
+  margin-left: 6px;
+}
+.en-status-pill.pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px dashed rgba(245, 158, 11, 0.35);
+}
+.en-status-pill.filled {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+/* 未填題目題號跳轉標籤雲 */
+.unanswered-tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm);
+}
+
+.unanswered-num-btn {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fef08a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.unanswered-num-btn:hover {
+  background: var(--accent-warning);
+  color: #070b14;
+  transform: scale(1.05);
 }
 
 .en-item-left {

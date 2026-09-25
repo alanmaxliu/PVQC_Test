@@ -1374,9 +1374,6 @@
         if (this.classList.contains('matched') || this.classList.contains('selected')) return;
 
         soundClick();
-        if (this.dataset.type === 'en') {
-          speak(this.textContent.trim());
-        }
 
         if (!state.cardMatchSelected) {
           state.cardMatchSelected = this;

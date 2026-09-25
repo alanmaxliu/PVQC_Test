@@ -1338,6 +1338,8 @@
     DOM.progressBarFill.style.width = '0%';
     DOM.progressText.textContent = `消消樂挑戰 (共 ${state.activeQuestions.length} 對)`;
     state.cardMatchRoundQuestions = [...state.activeQuestions];
+    state.cardMatchFailedIds = new Set(); // 記錄曾經配對失敗過的題目 ID (一次失誤該題即算錯題)
+    state.cardMatchWrongAttempts = 0; // 記錄累計配對失敗次數
     runCardMatchRound();
   }
 
@@ -1394,7 +1396,6 @@
               second.classList.remove('selected');
               state.cardMatchSelected = null;
               state.cardMatchRemaining--;
-              state.results.correct++;
               document.getElementById('cardLeftCount').textContent = state.cardMatchRemaining;
 
               if (state.cardMatchRemaining === 0) {
@@ -1402,6 +1403,24 @@
                   runCardMatchRound();
                 } else {
                   stopTimer();
+                  // 結算消消樂真實成績：總出題數中，扣除曾經配對出錯過的題目數
+                  const total = state.activeQuestions.length;
+                  const failedCount = state.cardMatchFailedIds.size;
+                  const finalCorrect = Math.max(0, total - failedCount);
+
+                  state.results.total = total;
+                  state.results.correct = finalCorrect;
+                  state.results.wrong = failedCount;
+
+                  // 將所有答錯過的題目整理至 mistakes 清單，支援重測
+                  state.results.mistakes = state.activeQuestions
+                    .filter(q => state.cardMatchFailedIds.has(q.id))
+                    .map(q => ({
+                      question: q,
+                      yourAnswer: `配對失誤 (累計失誤 ${state.cardMatchWrongAttempts} 次)`,
+                      correctAnswer: `${q.en} ＝ ${q.zh}`
+                    }));
+
                   showResultScreen();
                 }
               }
@@ -1410,7 +1429,14 @@
             soundWrong();
             first.classList.add('mismatch');
             second.classList.add('mismatch');
-            state.results.wrong++;
+
+            // 標記參與此次錯誤配對的題目為錯題 (不得獲得該題滿分)
+            const id1 = parseInt(first.dataset.id, 10);
+            const id2 = parseInt(second.dataset.id, 10);
+            if (id1) state.cardMatchFailedIds.add(id1);
+            if (id2) state.cardMatchFailedIds.add(id2);
+            state.cardMatchWrongAttempts++;
+
             setTimeout(() => {
               first.classList.remove('selected', 'mismatch');
               second.classList.remove('selected', 'mismatch');

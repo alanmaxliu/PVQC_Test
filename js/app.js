@@ -613,24 +613,33 @@
       }
     });
 
-    // 左欄：所有英文題目 (垂直連續排列，長滾動)
+    // 左欄：所有英文題目 (垂直連續排列，長滾動，手機友善卡片佈局)
     const enListHtml = state.activeQuestions.map((q, idx) => {
       const currentCode = state.userAnswers[q.id] || '';
       const isActive = state.activeEnWordId === q.id;
+      // 找出若已配對，對應的中文釋義文字
+      const matchedZhItem = currentCode ? state.matchZhList.find(item => item.code === currentCode) : null;
+      const matchedZhText = matchedZhItem ? matchedZhItem.zh : '';
 
       return `
         <div class="en-match-item ${isActive ? 'active-focus' : ''}" data-id="${q.id}" id="enItem_${q.id}">
-          <div class="en-item-left">
-            <span class="en-idx-badge">#${idx + 1}</span>
-            <span class="en-term">${q.en}</span>
-            <span class="en-status-pill ${currentCode ? 'filled' : 'pending'}" id="statusPill_${q.id}">
-              ${currentCode ? `✅ 配對 [${currentCode}]` : '⚠️ 待作答'}
-            </span>
-            <button type="button" class="audio-btn" data-audio="${encodeURIComponent(q.en)}" title="朗讀發音">🔊</button>
+          <div class="en-card-top-row">
+            <div class="en-badge-group">
+              <span class="en-idx-badge">#${idx + 1}</span>
+              <button type="button" class="audio-btn" data-audio="${encodeURIComponent(q.en)}" title="朗讀發音">🔊</button>
+            </div>
+            <div class="en-match-input-wrap">
+              <input type="text" class="match-code-input" data-qid="${q.id}" data-idx="${idx}" maxlength="4" value="${currentCode}" placeholder="代號">
+              ${currentCode ? `<button type="button" class="btn-clear-code" data-qid="${q.id}" title="清除答案">✕</button>` : ''}
+            </div>
           </div>
-          <div class="en-match-input-wrap">
-            <input type="text" class="match-code-input" data-qid="${q.id}" data-idx="${idx}" maxlength="4" value="${currentCode}" placeholder="代號">
-            ${currentCode ? `<button type="button" class="btn-clear-code" data-qid="${q.id}" title="清除答案">✕</button>` : ''}
+          <div class="en-card-main-word">
+            <span class="en-term">${q.en}</span>
+          </div>
+          <div class="en-card-bottom-row">
+            <span class="en-status-pill ${currentCode ? 'filled' : 'pending'}" id="statusPill_${q.id}">
+              ${currentCode ? `✅ [${currentCode}] ${matchedZhText}` : '⚠️ 待作答'}
+            </span>
           </div>
         </div>
       `;
@@ -1062,7 +1071,9 @@
     if (pill) {
       if (code) {
         pill.className = 'en-status-pill filled';
-        pill.innerHTML = `✅ 配對 [${code}]`;
+        const matchedZhItem = state.matchZhList ? state.matchZhList.find(item => item.code === code) : null;
+        const matchedZhText = matchedZhItem ? matchedZhItem.zh : '';
+        pill.innerHTML = `✅ [${code}] ${matchedZhText}`;
         itemEl.classList.remove('pulse-missing');
       } else {
         pill.className = 'en-status-pill pending';

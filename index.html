@@ -47,10 +47,6 @@
         <div>
           <div class="section-step-badge">STEP 1</div>
           <h2 class="panel-title" style="margin-top: 4px;">⚙️ 測驗出題參數設定</h2>
-          <p class="panel-desc">自訂抽考序號範圍與出題數，支援自選、快速區間或全範圍測驗。</p>
-        </div>
-        <div style="text-align: right;">
-          <span class="version-tag-sub">系統版本 v2.3.0</span>
         </div>
       </div>
 
@@ -105,22 +101,21 @@
       </div>
       <div class="mode-grid">
         
-        <!-- 模式 1：打散代號配對 (指定核心) -->
-        <div class="mode-card selected" data-mode="match-code">
-          <div class="mode-badge-rec">核心指定模式</div>
-          <div class="mode-icon">🔀</div>
-          <div class="mode-info">
-            <h4>打散代號配對 (單頁連續滑動)</h4>
-            <p>單一畫面直接向下滑動作答到底！英文與中文全卷唯一編碼，點擊或輸入代號快速配對，交卷前未填防呆提醒。</p>
-          </div>
-        </div>
-
-        <!-- 模式 2：經典四選一 -->
-        <div class="mode-card" data-mode="multiple-choice">
+        <!-- 模式 1：經典四選一 (預設首位) -->
+        <div class="mode-card selected" data-mode="multiple-choice">
           <div class="mode-icon">📝</div>
           <div class="mode-info">
             <h4>PVQC 經典單選</h4>
-            <p>標準 PVQC 競賽模式，給予英文詞彙並自 4 個中文選項中選出正解，考驗快速反應力。</p>
+            <p>標準四選一測驗，依據英文單字選出正確中文釋義。</p>
+          </div>
+        </div>
+
+        <!-- 模式 2：打散代號配對 -->
+        <div class="mode-card" data-mode="match-code">
+          <div class="mode-icon">🔀</div>
+          <div class="mode-info">
+            <h4>打散代號配對</h4>
+            <p>左右對照快速配對，可依筆劃排序與搜尋，直覺填答。</p>
           </div>
         </div>
 
@@ -129,7 +124,7 @@
           <div class="mode-icon">🧩</div>
           <div class="mode-info">
             <h4>卡片速配消消樂</h4>
-            <p>將抽出的英文與中文打散混排於卡片網格，連續點擊對應配對進行消除，計時挑戰！</p>
+            <p>點選對應的英文與中文卡片進行消除，考驗反應速度。</p>
           </div>
         </div>
 
@@ -138,7 +133,7 @@
           <div class="mode-icon">⌨️</div>
           <div class="mode-info">
             <h4>拼寫實戰挑戰</h4>
-            <p>看中文解釋拼寫出正確英文單字，提供長度與字首提示，加深專業詞彙記憶度。</p>
+            <p>看中文提示鍵入正確英文單字，強化專業拼寫能力。</p>
           </div>
         </div>
 
@@ -277,14 +272,9 @@
       </div>
     </section>
 
-    <!-- 頁尾宣告與作者著作權標記 -->
+    <!-- 頁尾宣告 -->
     <footer class="app-footer">
-      <div class="author-credits">
-        <strong>系統開發設計：劉建良@2026 免費軟體</strong>
-        <span class="version-pill" style="margin-left: 8px;">v2.3.0 (雙欄獨立滑動 + 繁體筆劃排序版)</span>
-      </div>
-      <p style="margin-top: 6px;">PVQC 專業英文詞彙 - 電機電子類 (EE) 1-793 線上互動測驗挑戰系統</p>
-      <p style="margin-top: 4px; color: var(--text-dim);">純前端離線運算架構 ｜ 支援手機雙欄獨立滑動與筆畫排序 ｜ 免費學習分享</p>
+      <p style="margin: 0; color: var(--text-dim); font-size: 0.88rem;">© 2026 劉建良 ｜ 免費軟體・學習分享</p>
     </footer>
 
   </div>

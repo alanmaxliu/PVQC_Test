@@ -18,7 +18,7 @@
     startId: 1,
     endId: 793,
     requestedCount: 20,
-    currentMode: 'match-code', // match-code, multiple-choice, card-match, spell-check
+    currentMode: 'multiple-choice', // multiple-choice, match-code, card-match, spell-check
     activeQuestions: [],
     currentIndex: 0,
     userAnswers: {}, // key: wordId, value: assignedCode

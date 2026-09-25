@@ -7,3 +7,7 @@ yarn-error.log*
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Local raw vocabulary markdown & local guides (keep only on local machine)
+電機電子*.md
+DEPLOY_LOCAL_GUIDE.md

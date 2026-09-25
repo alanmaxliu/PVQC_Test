@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const mdPath = path.join(__dirname, '..', '電機電子793單字.md');
+const mdPath = path.join(__dirname, '..', '電機電子793單字整理後.md');
 const outDir = path.join(__dirname, '..', 'data');
 const outPath = path.join(outDir, 'words.js');
 
@@ -35,7 +35,7 @@ words.sort((a, b) => a.id - b.id);
 
 const jsContent = `/**
  * PVQC 電機電子專業英文題庫 (共 ${words.length} 題)
- * 自動產生自「電機電子793單字.md」
+ * 自動產生自「電機電子793單字整理後.md」
  */
 const PVQC_VOCABULARY = ${JSON.stringify(words, null, 2)};
 
